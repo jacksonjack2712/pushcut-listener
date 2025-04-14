@@ -1,38 +1,35 @@
-from flask import Flask, request
 import json
 from datetime import datetime, timedelta
+from flask import Flask, request
+from payments_db import init_db, find_matching_payment, is_subscription_active, activate_subscription
 
 app = Flask(__name__)
+init_db()
 
-ALLOWED_USERS_FILE = 'allowed_users.json'
-PENDING_PAYMENTS_FILE = 'pending_payments.txt'
-
-@app.route('/payment', methods=['POST'])
+@app.route("/payment", methods=["POST"])
 def handle_payment():
     try:
-        with open(PENDING_PAYMENTS_FILE, 'r', encoding='utf-8') as f:
-            pending = json.load(f)
-    except FileNotFoundError:
-        pending = {}
+        data = request.get_json()
+        print("Received data:", data)
 
-    try:
-        with open(ALLOWED_USERS_FILE, 'r', encoding='utf-8') as f:
-            allowed = json.load(f)
-    except FileNotFoundError:
-        allowed = {}
+        for user_id, info in data.items():
+            days = info.get("days")
+            amount = info.get("amount")  # можно передавать сумму, если хочешь
+            user_id = str(user_id)
 
-    for user_id, data in list(pending.items()):
-        days = data['days']
-        expiry = datetime.now() + timedelta(days=days)
-        allowed[user_id] = expiry.strftime("%Y-%m-%d %H:%M:%S")
-        del pending[user_id]
+            print(f"Finding payment for user {user_id}...")
+            payment_id = find_matching_payment(int(amount))
 
-    with open(ALLOWED_USERS_FILE, 'w', encoding='utf-8') as f:
-        json.dump(allowed, f, ensure_ascii=False, indent=2)
-    with open(PENDING_PAYMENTS_FILE, 'w', encoding='utf-8') as f:
-        json.dump(pending, f, ensure_ascii=False, indent=2)
-
-    return "[OK] Подписка выдана"
+            if payment_id:
+                print(f"Payment found! Activating subscription for user {user_id}.")
+                activate_subscription(user_id, days)
+                return {"status": "success"}, 200
+            else:
+                print("No matching payment found.")
+                return {"status": "no match"}, 404
+    except Exception as e:
+        print("Error:", e)
+        return {"status": "error", "message": str(e)}, 500
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    app.run(host='0.0.0.0', port=10000)
