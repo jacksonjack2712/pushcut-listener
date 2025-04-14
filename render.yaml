@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: pushcut-listener
+    env: python
+    plan: free
+    buildCommand: ""
+    startCommand: "python pushcut_listener.py"
+    autoDeploy: true
+    region: oregon
