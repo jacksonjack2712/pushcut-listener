@@ -61,7 +61,11 @@ def find_matching_payment(amount):
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
     now = datetime.now(timezone.utc)
-    c.execute("SELECT id, user_id, duration, created_at FROM pending_payments WHERE amount = ? AND status = 'pending'", (amount,))
+    c.execute("""
+    SELECT id, user_id, duration, created_at 
+    FROM pending_payments 
+    WHERE amount = ? AND status = 'paid'
+""", (amount,))
     rows = c.fetchall()
     for row in rows:
         created_at = datetime.fromisoformat(row[3])
