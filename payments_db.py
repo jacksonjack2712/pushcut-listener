@@ -1,10 +1,10 @@
 import sqlite3
-from datetime import datetime, timedelta
+import json
+from datetime import datetime, timedelta, timezone
 
 DB_NAME = "payments.db"
 
 # Создание таблиц
-
 def init_db():
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
@@ -34,30 +34,18 @@ def init_db():
     conn.close()
 
 # Добавить заявку на оплату
-
 def add_pending_payment(user_id, amount, duration):
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
-    now = datetime.now().isoformat()
-    c.execute("INSERT INTO pending_payments (user_id, amount, duration, created_at, status) VALUES (?, ?, ?, ?, ?)",
-              (user_id, amount, duration, now, "pending"))
-    conn.commit()
-    conn.close()
-
-# Активировать подписку
-
-def activate_subscription(user_id, duration):
-    conn = sqlite3.connect(DB_NAME)
-    c = conn.cursor()
-    start_date = datetime.now()
-    end_date = start_date + timedelta(days=duration)
-    c.execute("REPLACE INTO subscriptions (user_id, start_date, end_date) VALUES (?, ?, ?)",
-              (user_id, start_date.isoformat(), end_date.isoformat()))
+    created_at = datetime.now(timezone.utc).isoformat()
+    c.execute('''
+        INSERT INTO pending_payments (user_id, amount, duration, created_at, status)
+        VALUES (?, ?, ?, ?, ?)
+    ''', (user_id, amount, duration, created_at, "pending"))
     conn.commit()
     conn.close()
 
 # Проверка активной подписки
-
 def is_subscription_active(user_id):
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
@@ -65,15 +53,14 @@ def is_subscription_active(user_id):
     row = c.fetchone()
     conn.close()
     if row:
-        return datetime.fromisoformat(row[0]) > datetime.now()
+        return datetime.fromisoformat(row[0]) > datetime.now(timezone.utc)
     return False
 
 # Найти подходящую заявку по сумме
-
 def find_matching_payment(amount):
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
-    now = datetime.now()
+    now = datetime.now(timezone.utc)
     c.execute("SELECT id, user_id, duration, created_at FROM pending_payments WHERE amount = ? AND status = 'pending'", (amount,))
     rows = c.fetchall()
     for row in rows:
@@ -85,7 +72,6 @@ def find_matching_payment(amount):
     return None
 
 # Пометить заявку как оплаченная
-
 def mark_payment_paid(payment_id):
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
@@ -94,12 +80,11 @@ def mark_payment_paid(payment_id):
     conn.close()
 
 # Очистка просроченных заявок (по желанию можно вызывать периодически)
-
 def expire_old_pending():
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
-    now = datetime.now().isoformat()
-    c.execute("UPDATE pending_payments SET status = 'expired' WHERE status = 'pending' AND datetime(created_at) < datetime(?, '-10 minutes')", (now,))
+    now = datetime.now(timezone.utc).isoformat()
+    c.execute("UPDATE pending_payments SET status = 'expired' WHERE status = 'pending' AND created_at < ?", (now,))
     conn.commit()
     conn.close()
 
@@ -107,3 +92,4 @@ def expire_old_pending():
 if __name__ == "__main__":
     init_db()
     print("Database initialized.")
+
