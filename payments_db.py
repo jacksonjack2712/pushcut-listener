@@ -1,6 +1,6 @@
+from datetime import datetime, timedelta, timezone
 import sqlite3
 import json
-from datetime import datetime, timezone
 
 DB_NAME = "payments.db"
 
@@ -8,7 +8,6 @@ DB_NAME = "payments.db"
 def init_db():
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
-
     # Таблица заявок на оплату
     c.execute('''
         CREATE TABLE IF NOT EXISTS pending_payments (
@@ -20,7 +19,6 @@ def init_db():
             status TEXT
         )
     ''')
-
     # Таблица активных подписок
     c.execute('''
         CREATE TABLE IF NOT EXISTS subscriptions (
@@ -29,7 +27,6 @@ def init_db():
             end_date TEXT
         )
     ''')
-
     conn.commit()
     conn.close()
 
@@ -49,26 +46,24 @@ def find_matching_payment(amount):
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
     now = datetime.now(timezone.utc)
-
     c.execute("""
         SELECT id, user_id, duration, created_at
         FROM pending_payments
         WHERE amount = ? AND status = 'paid'
     """, (amount,))
-    
     rows = c.fetchall()
-print("Все строки по сумме и статусу:")
-for row in rows:
-    print(row)
-    
+
+    print("Все строки по сумме и статусу:")
+    for row in rows:
+        print(row)
+
     for row in rows:
         created_at = datetime.fromisoformat(row[3])
-        diff = abs((now - created_at).total_seconds())
-        print(f"⏱ now: {now}, created_at: {created_at}, diff: {diff}")
-        if diff <= 600:
-            print(f"✅ Нашёл запись: {row}")
+        print(f"Проверка времени: now = {now}, created_at = {created_at}")
+        if abs((now - created_at).total_seconds()) <= 600:
             conn.close()
-            return row[0], row[1], row[2]
+            print("✅ Нашёл запись: ", row)
+            return row[0], row[1], row[2]  # id, user_id, duration
 
     conn.close()
     return None
@@ -81,16 +76,14 @@ def mark_payment_paid(payment_id):
     conn.commit()
     conn.close()
 
-# Добавить новую подписку
-def activate_subscription(user_id, duration_days):
-    now = datetime.now(timezone.utc)
-    end = now + timedelta(days=duration_days)
+# Добавить новую заявку
+def add_pending_payment(user_id, amount, duration, days):
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
-    c.execute("""
-        INSERT OR REPLACE INTO subscriptions (user_id, start_date, end_date)
-        VALUES (?, ?, ?)
-    """, (user_id, now.isoformat(), end.isoformat()))
+    now = datetime.now(timezone.utc).isoformat()
+    c.execute("INSERT INTO pending_payments (user_id, amount, duration, created_at, status) VALUES (?, ?, ?, ?, 'pending')",
+              (user_id, amount, days, now))
     conn.commit()
     conn.close()
+
 
