@@ -57,7 +57,10 @@ def find_matching_payment(amount):
     """, (amount,))
     
     rows = c.fetchall()
-
+print("Все строки по сумме и статусу:")
+for row in rows:
+    print(row)
+    
     for row in rows:
         created_at = datetime.fromisoformat(row[3])
         diff = abs((now - created_at).total_seconds())
