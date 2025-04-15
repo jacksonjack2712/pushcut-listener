@@ -69,7 +69,8 @@ def find_matching_payment(amount):
     rows = c.fetchall()
     for row in rows:
         created_at = datetime.fromisoformat(row[3])
-        if abs((now - created_at).total_seconds()) <= 600:
+        print(f"⏱ now: {now}, created_at: {created_at}, diff: {abs((now - created_at).total_seconds())}")
+if abs((now - created_at).total_seconds()) <= 600:
             print(f"✅ Нашёл запись: {row}")
             conn.close()
             return row[0], row[1], row[2]  # id, user_id, duration
