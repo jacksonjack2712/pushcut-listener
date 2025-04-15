@@ -70,7 +70,7 @@ def find_matching_payment(amount):
     for row in rows:
         created_at = datetime.fromisoformat(row[3])
         if abs((now - created_at).total_seconds()) <= 600:
-            Нашёл запись: (38, 7538256291, 1, '2025-04-15T00:07:23.209960+00:00')
+            print(f"✅ Нашёл запись: {row}")
             conn.close()
             return row[0], row[1], row[2]  # id, user_id, duration
     conn.close()
