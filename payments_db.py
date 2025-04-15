@@ -33,6 +33,18 @@ def init_db():
     conn.commit()
     conn.close()
 
+def add_pending_payment(user_id, amount, days):
+    conn = sqlite3.connect(DB_NAME)
+    c = conn.cursor()
+    now = datetime.now(timezone.utc)
+    c.execute("""
+        INSERT INTO pending_payments (user_id, amount, duration, created_at, status)
+        VALUES (?, ?, ?, ?, 'pending')
+    """, (user_id, amount, days, now.isoformat()))
+    conn.commit()
+    conn.close()
+
+
 # Проверка активной подписки
 def is_subscription_active(user_id):
     conn = sqlite3.connect(DB_NAME)
