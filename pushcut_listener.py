@@ -17,7 +17,7 @@ def handle_payment():
             user_id = str(user_id)
 
             print(f"Finding payment for user {user_id}...")
-            payment = find_matching_payment(int(amount))
+            payment = find_matching_payment(float(amount))
 
             if payment:
                 print(f"Payment found! Activating subscription for user {user_id}.")
