@@ -1,6 +1,6 @@
 import json
 from flask import Flask, request
-from payments_db import init_db, find_matching_payment, is_subscription_active, mark_payment_paid
+from payments_db import init_db, find_matching_payment, is_subscription_active, mark_payment_paid, add_subscription
 
 app = Flask(__name__)
 init_db()
@@ -17,14 +17,15 @@ def handle_payment():
             user_id = str(user_id)
 
             print(f"Finding payment for user {user_id}...")
-            payment = find_matching_payment(float(amount))
+            payment = find_matching_payment(user_id, float(amount))
 
             if payment:
-                print(f"Payment found! Activating subscription for user {user_id}.")
+                print(f"✅ Payment found! Activating subscription for user {user_id}.")
                 mark_payment_paid(payment[0])  # payment_id
+                add_subscription(user_id, days)
                 return {"status": "success"}, 200
             else:
-                print("No matching payment found.")
+                print("❌ No matching payment found.")
                 return {"status": "no match"}, 404
 
     except Exception as e:
